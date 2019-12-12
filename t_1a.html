@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="./js/jquery-3.4.1.js"></script>
+    <script>
+        let h_length = history.length;
+        let current_id;
+        const data = [];
+
+        init();
+        initData();
+
+        $(window).on('popstate', x);
+        $(window).on('pushstate', x);
+
+        //-----------------------
+        function init() {
+            history_proto = Object.getPrototypeOf(history);
+            let pushState_fn = history_proto.pushState;
+
+            // 覆寫 history.pushState()方法
+            // 讓其執行時會發出 pushstate 事件
+            history_proto.pushState = function () {
+                // console.log('pushState');
+                let args = Array.from(arguments);
+                let res = pushState_fn.apply(history, args);
+
+                let event = new Event('pushstate');
+                window.dispatchEvent(event);
+
+                return res;
+            }
+        }
+        //-----------------------
+
+        // 初始化 data
+        function initData() {
+
+            if (history.state == null || history.state.id == null) {
+                console.log('history.state 不存在，建立');
+
+                let id = (new Date()).getTime();
+                current_id = id;
+
+                history.replaceState({
+                    id: id
+                }, null);
+            } else {
+                let id = history.state.id;
+                current_id = id;
+                checkData_1(id);
+                console.log('history.state 已經存在');
+            }
+            console.log('data(%s)', JSON.stringify(data));
+            console.log('-------------------');
+        }
+        //-----------------------
+        function x(e) {
+            let href = location.href;
+            let old_id = current_id;
+
+            if (history.state == null || history.state.id == null) {
+                // new 
+                let id = (new Date()).getTime();
+                current_id = id;
+
+                history.replaceState({
+                    id: id
+                }, null, null);
+
+                console.log('new forward(%s), href(%s), clean between(%s-%s)', history.state.id, href);
+                checkData(old_id, id);
+            } else {
+                // 有 history.state.id 都是歷史資料
+                // back
+
+                let c_id = history.state.id;
+                let judge = c_id - old_id;
+
+                current_id = c_id;
+
+                checkData_1(current_id);
+
+                if (judge == 0) {
+                    console.log('no change(%s), href(%s)', history.state.id, href);
+                } else if (judge < 0) {
+                    console.log('back(%s), href(%s)', history.state.id, href);
+                } else {
+                    console.log('forward(%s), href(%s)', history.state.id, href);
+                }
+            }
+
+            console.log('data(%s)', JSON.stringify(data));
+            console.log('-------------------');
+        }
+        //-----------------------
+
+        function click_1() {
+            let r = (new Date()).getTime();
+            // let url = location.href;
+            // url = url.replace(/(\?).*$/, '');
+            url = `?time=${r}`;
+            history.pushState(null, null, url);
+        }
+        //-----------------------
+        // 整理資料
+        function checkData(old_id, new_id) {
+            data.push(new_id);
+
+            let clone_data = [];
+
+            let remove = [];
+
+            data.forEach((v) => {
+                if (v > old_id && v < new_id) {
+                    remove.push(v);
+                } else {
+                    clone_data.push(v);
+                }
+            });
+            console.log('insert(%s)', new_id);
+            console.log('remove(%s)', JSON.stringify(remove));
+            console.log('remain(%s)', JSON.stringify(clone_data));
+
+            data.length = 0;
+
+            clone_data.forEach((v) => {
+                data.push(v);
+            });
+        }
+        //-----------------------
+        // 補登過去 history 的資料
+        function checkData_1(id) {
+
+            let judge = data.some((v) => {
+                return (v === id);
+            });
+
+            if (!judge) {
+                data.push(id);
+            }
+        }
+    </script>
+</head>
+
+<body>
+    <div>
+        <button onclick="click_1();">history</button>
+    </div>
+    <hr>
+    <div>
+        <a href="#a">a</a>
+    </div>
+    <div>
+        <a href="#b">b</a>
+    </div>
+    <div>
+        <a href="#c">c</a>
+    </div>
+    <div>
+        <a href="#d">d</a>
+    </div>
+</body>
+<script>
+
+
+</script>
+
+</html>
